@@ -1,6 +1,7 @@
 import unittest
 from datetime import datetime
 
+from compass_common.algorithm_utils import get_param_score
 from compass_model.base_metrics_model_v2 import BaseMetricsModel
 
 
@@ -37,6 +38,18 @@ class GitMetricIndexRoutingTests(unittest.TestCase):
         for _, body in model.client.calls:
             self.assertEqual(body["query"]["bool"]["must"][0],
                              {"terms": {"tag": ["repo.git"]}})
+
+    def test_line_additions_contribute_to_the_model_score(self):
+        model = BaseMetricsModel.__new__(BaseMetricsModel)
+        model.algorithm = "criticality_score"
+        model.metrics_weights_thresholds = {
+            "lines_changed_by_period": {"weight": 1, "threshold": 10},
+        }
+
+        self.assertEqual(
+            model.get_metrics_score({"lines_added": 8, "lines_removed": 2}),
+            round(get_param_score(8, 10), 5),
+        )
 
 
 if __name__ == "__main__":
